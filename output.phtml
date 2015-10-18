@@ -1,0 +1,89 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+<html>
+	<head>
+		<meta HTTP-EQUIV="Content-Type" CONTENT="text/html; charset=utf-8">
+		<meta http-equiv="cache-control" content="no-cache">
+		<title>Výsledky automatického vyhodnocení</title>
+		<style type="text/css">
+			body {
+				width: 100%;
+			}
+
+			div, form {
+				margin: 0pt;
+				margin-left: auto;
+				margin-right: auto;
+				width: 875px;
+				display: block;
+				font-size: 12px;
+				font-family: "Consolas";
+			}
+
+			div {
+				white-space: pre;
+			}
+
+			.public {
+				display: block;
+				background-color: #f0f0f0;
+				margin-left: auto;
+				margin-right: auto;
+			}
+		</style>
+	</head>
+	<body>
+		<form method="POST">
+			<table style="width:100%;">
+				<tr>
+					<td style="width:20%;">
+						<label for="timeLimit">Time limit: </label>
+					</td>
+					<td>
+						<input type="number" min="0" max="60" step="any" name="timeLimit" id="exePath" style="width:100%;" value="<?php echo isset($_POST['timeLimit']) ? sprintf("%.3f", $_POST['timeLimit']) : ''; ?>" />
+					</td>
+				</tr>
+				<tr>
+					<td style="width:20%;">
+						<label for="exePath">Working directory: </label>
+					</td>
+					<td>
+						<?php echo getcwd(); ?>
+					</td>
+				</tr>
+				<tr>
+					<td style="width:20%;">
+						<label for="exePath">Program path: </label>
+					</td>
+					<td>
+						<input type="text" name="exePath" id="exePath" style="width:100%;" value="<?php echo isset($_POST['exePath']) ? $_POST['exePath'] : ''; ?>" />
+					</td>
+				</tr>
+				<tr>
+					<td style="width:20%;">
+						<label for="exePath">Test data path: </label>
+					</td>
+					<td>
+						<input type="text" name="dataPath" id="dataPath" style="width:100%;" value="<?php echo isset($_POST['dataPath']) ? $_POST['dataPath'] : ''; ?>" />
+					</td>
+				</tr>
+				<tr>
+					<td colspan="2" align="center">
+						<input type="submit" value="Evaluate" />
+					</td>
+				</tr>
+			</table>
+		</form>
+	<br />
+	<?php if (isset($startTime)) : ?>
+		<div>Evaluation started on: <?php echo date("j. M Y, H:i:s", $startTime); ?>.</div>
+	<?php endif; ?>
+	<?php foreach (isset($results) ? $results : array() as $result) : ?>
+		<?php printResult($result); ?>
+	<?php endforeach; ?>
+	<?php if (isset($stopTime)) : ?>
+		&nbsp;
+		<div>Evaluation finished on: <?php echo date("j. M Y, H:i:s", $stopTime); ?>.</div>
+	<?php endif; ?>
+		&nbsp;
+</body>
+</html>
