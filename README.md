@@ -7,7 +7,7 @@ Pro používání je potřeba mít nainstalovaný PHP interpreter / PHP Apache.
 ## Testování úloh
 Program se spouší příkazem:
 
-`# php index.php programPath testpubDir`
+`# php tester.php programPath testpubDir`
 
 Dále je možné pomocí přepínače `--time` nastavit time-limit úloh (defaultně 3 sekundy  / úloha), nebo pomocí přepínače `--silent` omezit tisk výstupu vašeho programu do terminálu (bude zobrazen pouze stderr pokud nebude prázdný).
 
