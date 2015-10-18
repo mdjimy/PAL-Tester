@@ -1,0 +1,5 @@
+.gitattributes export-ignore
+.gitignore export-ignore
+README.md export-ignore
+terminal.png export-ignore
+website.png export-ignore
