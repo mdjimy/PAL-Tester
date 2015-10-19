@@ -13,18 +13,19 @@ arguments:
 switches:
 	-t, --time:		Use to set time limit. (in seconds) [default: " . sprintf("%.3f", DEFAULT_TIME_LIMIT) . "s]
 	-s, --silent:	Use if you don't want to print output of your program
+	-w, --watch:	Use if you want to keep running this script & re-run tests on update of program
 	-h, --help:		Display this sexy help :)
 ";
 }
 
-$first = true;
+$printResultsFirsTest = true;
 
 function printResult(array $status) {
-	global $first;
-	if (!$first) {
-		echo SILENT_OUTPUT ? "" : "\n\n";
+	global $printResultsFirsTest;
+	if (!$printResultsFirsTest) {
+		echo SILENT_OUTPUT ? "" : "\n";
 	}
-	$first = false;
+	$printResultsFirsTest = false;
 
 	echo (IS_CLI ? "" : "&nbsp;") . "
 " . (IS_CLI ? "" : "<div><div style=\"background-color:#" . ($status['solution_ok'] && $status['time_ok'] ? "00a000" : ($status['solution_ok'] ? "B8B84E" : "A90A3A")) . "/*#cfcfcf*/; text-align:center;\"><span style=\"color:white;\">") . "PUBLIC DATA INSTANCE: " . $status['task'] . ", result: " . (IS_CLI ? ($status['solution_ok'] && $status['time_ok'] ? "\033[32m" : ($status['solution_ok'] ? "\033[33m" : "\033[31m")) : "") . ($status['solution_ok'] ? "" : "IN") . "CORRECT SOLUTION" . (IS_CLI ? "\033[0m" : "</span></div></div>" ) . "
@@ -45,7 +46,7 @@ STDOUT of data instance: '" . $status['task'] . "'
 -------------------------------------------------------------------------------
 STDERR of data instance: '" . $status['task'] . "'
 -------------------------------------------------------------------------------
-" . (strlen($status['stderr']) ? $status['stderr'] : (IS_CLI ? "<" : "&lt;") . "Empty output stream" . (IS_CLI ? ">" : "&gt;")) . (IS_CLI ? "" : "</div>");
+" . (strlen($status['stderr']) ? $status['stderr'] : (IS_CLI ? "<" : "&lt;") . "Empty output stream" . (IS_CLI ? ">" : "&gt;")) . (IS_CLI ? "\n" : "</div>");
 	}
 }
 
@@ -61,6 +62,7 @@ if (IS_CLI) {
 	$_POST['exePath'] = NULL;
 	$_POST['dataPath'] = NULL;
 	$silent = false;
+	$watch = false;
 
 	$argp = 0;
 	for ($i = 1; $i < $argc; $i++) {
@@ -69,6 +71,10 @@ if (IS_CLI) {
 				case 't':
 				case '-time':
 					$_POST['timeLimit'] = $argv[++$i] / 1;
+					break;
+				case 'w':
+				case '-watch':
+					$watch = true;
 					break;
 				case 'h':
 				case '-help':
@@ -101,6 +107,7 @@ if (IS_CLI) {
 	}
 
 	define('SILENT_OUTPUT', $silent);
+	define('WATCH', $watch);
 
 	if (!$_POST['exePath'] || !$_POST['dataPath']) {
 		echo "Not enought input arguments.\n";
@@ -119,6 +126,8 @@ if (IS_CLI) {
 		printCliHelp();
 		exit(1);
 	}
+
+	@set_time_limit(0);
 } else {
 	$_POST['exePath'] = isset($_POST['exePath']) ? $_POST['exePath'] : (isset($_COOKIE['exePath']) ? $_COOKIE['exePath'] : "");
 	$_POST['dataPath'] = rtrim(isset($_POST['dataPath']) ? $_POST['dataPath'] : (isset($_COOKIE['dataPath']) ? $_COOKIE['dataPath'] : ""), '\\/');
@@ -131,7 +140,8 @@ if (IS_CLI) {
 		$_POST['dataPath'] = getPath($_POST['dataPath']);
 	}
 
-	define('SILENT_OUTPUT', false);
+	define('SILENT_OUTPUT', false); // Not supported in GUI
+	define('WATCH', false);   // Not supported in GUI
 
 	setcookie("exePath", $_POST['exePath'], time() + 365 * 24 * 60 * 60);
 	setcookie("dataPath", $_POST['dataPath'], time() + 365 * 24 * 60 * 60);
@@ -157,37 +167,40 @@ function proc_kill($pid) {
 	return $returnVal;
 }
 
-$tests = array();
-if (is_file($_POST['exePath']) && is_dir($_POST['dataPath'])) {
-	$in = array();
-	$out = array();
+function getTests() {
+	$tests = array();
+	if (is_file($_POST['exePath']) && is_dir($_POST['dataPath'])) {
+		$in = array();
+		$out = array();
 
-	foreach (scandir('C:\Users\Martin\Documents\Skola\PAL\DU 3_2\datapub') as $file) {
-		if (is_file($path = $_POST['dataPath'] . '/' . $file)) {
-			if (preg_match("#^([a-zA-Z0-9]+)\.in$#i", $file, $match)) {
-				$in[$match[1]] = $path;
-			} elseif (preg_match("#^([a-zA-Z0-9]+)\.out$#i", $file, $match)) {
-				$out[$match[1]] = $path;
+		foreach (scandir('C:\Users\Martin\Documents\Skola\PAL\DU 3_2\datapub') as $file) {
+			if (is_file($path = $_POST['dataPath'] . '/' . $file)) {
+				if (preg_match("#^([a-zA-Z0-9]+)\.in$#i", $file, $match)) {
+					$in[$match[1]] = $path;
+				} elseif (preg_match("#^([a-zA-Z0-9]+)\.out$#i", $file, $match)) {
+					$out[$match[1]] = $path;
+				}
 			}
+		}
+
+		foreach ($in as $test => $file) {
+			isset($out[$test]) && $tests[$test] = array('in' => $file, 'out' => $out[$test]);
 		}
 	}
 
-	foreach (array_keys($in) as $test) {
-		isset($out[$test]) && $tests[] = $test;
-	}
-}
 
-if (!$tests) {
-	if (IS_CLI) {
-		echo "No test cases found.";
+	if (!$tests) {
+		if (IS_CLI) {
+			echo "No test cases found.";
+		}
+		require_once __DIR__ . '/output.phtml';
+		exit(0);
 	}
-	require_once __DIR__ . '/output.phtml';
-	exit(0);
+
+	return $tests;
 }
 
 $exec = (pathinfo($_POST['exePath'], PATHINFO_EXTENSION) == 'jar' ? 'java -jar ' : '') . '"' . $_POST['exePath'] . '"';
-
-$startTime = time();
 
 $descriptorspec = array(
 	0 => array("pipe", "r"), // stdin is a pipe that the child will read from
@@ -195,73 +208,125 @@ $descriptorspec = array(
 	2 => array("pipe", "w"), // stderr is a pipe that the child will write to
 );
 
-$results = array();
-$_processes = array();
-//$i = 0;
-foreach ($tests as $test) {
-	$sysTime1 = microtime(true);
-	$testInput = file_get_contents($in[$test]) . "\n";
-	$testOutput = rtrim(file_get_contents($out[$test]));
+$watchIteration = 0;
+do {
+	$startTime = time();
 
-	$execTime = microtime(true);
-	$process = proc_open($exec, $descriptorspec, $pipes);
-	fwrite($pipes[0], $testInput);
-	fclose($pipes[0]);
-	$sysTime1 = microtime(true) - $sysTime1;
+	$tests = getTests();
+	if (!WATCH) {
+		set_time_limit($_POST['timeLimit'] * count($tests) + 20);
+	} else {
+		$printResultsFirsTest = true;
 
-	while (true) {
-		$status = proc_get_status($process);
+		if ($watchIteration++) {
+			echo "\n";
+			echo "--------------------------" . "---------------------" . "---------\n";
+			echo "-------- Re-evaluated at: " . date("d. m. Y H:i:s") . " --------\n";
+			echo "--------------------------" . "---------------------" . "---------\n";
+			echo "\n";
+		}
+	}
 
-		if ($status['running']) {
-			if (microtime(true) - $execTime >= $_POST['timeLimit']) {
-				proc_kill($status['pid']);
+	$results = array();
+	$_processes = array();
+//	$i = 0;
+	foreach ($tests as $test => $io) {
+		$sysTime1 = microtime(true);
+		$testInput = file_get_contents($io['in']) . "\n";
+		$testOutput = rtrim(file_get_contents($io['out']));
+
+		$execTime = microtime(true);
+		$process = proc_open($exec, $descriptorspec, $pipes);
+		fwrite($pipes[0], $testInput);
+		fclose($pipes[0]);
+		$sysTime1 = microtime(true) - $sysTime1;
+
+		while (true) {
+			$status = proc_get_status($process);
+
+			if ($status['running']) {
+				if (microtime(true) - $execTime >= $_POST['timeLimit']) {
+					proc_kill($status['pid']);
+					break;
+				}
+			} else {
 				break;
 			}
-		} else {
-			break;
+			usleep(250);
 		}
-		usleep(100);
+		$execTime = microtime(true) - $execTime;
+		$sysTime2 = microtime(true);
+
+		$stdout = rtrim(stream_get_contents($pipes[1]));
+		fclose($pipes[1]);
+
+		$stderr = rtrim(stream_get_contents($pipes[2]));
+		fclose($pipes[2]);
+
+		proc_close($process);
+
+		$ok = $stdout == $testOutput;
+
+		$sysTime2 = microtime(true) - $sysTime2;
+
+//		if (($i + 3) % 3 == 0) {
+//			$ok = false;
+//		}
+//		if ($i++ > 6) {
+//			$execTime = $_POST['timeLimit'] + rand(0, 50) / 100 - 0.25;
+//		}
+
+		$result = array(
+			'solution_ok' => $ok,
+			'time_ok' => ($execTime < $_POST['timeLimit']),
+			'task' => $test,
+			'time_limit' => $_POST['timeLimit'],
+			'system_time' => ($sysTime1 + $sysTime2),
+			'user_time' => $execTime,
+			'stdout' => $stdout,
+			'stderr' => $stderr,
+		);
+
+		if (IS_CLI) {
+			printResult($result);
+		} else {
+			$results[] = $result;
+		}
 	}
-	$execTime = microtime(true) - $execTime;
-	$sysTime2 = microtime(true);
+	$stopTime = time();
 
-	$stdout = stream_get_contents($pipes[1]);
-	fclose($pipes[1]);
+	if (WATCH) {
+		$execFileTime = filemtime($_POST['exePath']);
 
-	$stderr = stream_get_contents($pipes[2]);
-	fclose($pipes[2]);
+		echo "\n";
 
-	proc_close($process);
+		do {
+			clearstatcache(true, $_POST['exePath']);
 
-	$ok = $stdout == $testOutput;
+			$i = 4;
+			$s = array('|', '\\', '-', '/');
+			while ($i--) {
+				echo "\rWatching " . $s[$i] . ". To terminate type Ctrl + C: ";
+				usleep(250000);
+			}
 
-	$sysTime2 = microtime(true) - $sysTime2;
+			if (!is_file($_POST['exePath'])) {
+				echo "\rTerminated - Program executable not found.\n";
+				break 2;
+			}
+		} while ($execFileTime == filemtime($_POST['exePath']));
 
-//	if (($i + 3) % 3 == 0) {
-//		$ok = false;
-//	}
-//	if ($i++ > 6) {
-//		$execTime = $_POST['timeLimit'] + rand(0, 50) / 100 - 0.25;
-//	}
-	$result = array(
-		'solution_ok' => $ok,
-		'time_ok' => ($execTime < $_POST['timeLimit']),
-		'task' => $test,
-		'time_limit' => $_POST['timeLimit'],
-		'system_time' => ($sysTime1 + $sysTime2),
-		'user_time' => $execTime,
-		'stdout' => $stdout,
-		'stderr' => $stderr,
-	);
+		// Wait till all work on file is done (Windows)
+		$i = 4;
+		$s = array('|', '\\', '-', '/');
+		while ($i--) {
+			echo "\rWatching " . $s[$i] . ". To terminate type Ctrl + C: ";
+			usleep(250000);
+		}
 
-	if (IS_CLI) {
-		printResult($result);
-	} else {
-		$results[] = $result;
+		echo "\r                                        ";
 	}
-}
-
-$stopTime = time();
+} while (WATCH);
 
 if (!IS_CLI) {
 	require_once __DIR__ . '/output.phtml';
