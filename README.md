@@ -10,7 +10,8 @@ Program se spouší příkazem:
 `# php tester.php programPath testpubDir`
 
 Dále je možné pomocí přepínače `--time` nastavit time-limit úloh (defaultně 3 sekundy  / úloha), nebo pomocí přepínače `--silent` omezit tisk výstupu vašeho programu do terminálu (bude tištěn pouze `stderr` pokud nebude prázdný).
-Nově jsem pak implementoval switch `--watch`, který skript po dokončení testu neukončí, ale bude sledovat mtime (času poslední modifikace exe / jar souboru) a při jeho změně (re-kompilaci programu) spustí všechny testy znovu.
+
+Nově jsem pak implementoval switch `--watch`, který skript po dokončení testů neukončí, ale bude sledovat mtime (času poslední modifikace exe / jar souboru) a při jeho změně (re-kompilaci programu) spustí všechny testy znovu.
 
 ![Terminal sample](terminal.png)
 
