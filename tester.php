@@ -29,7 +29,7 @@ function printResult(array $status) {
 	echo (IS_CLI ? "" : "&nbsp;") . "
 " . (IS_CLI ? "" : "<div><div style=\"background-color:#" . ($status['solution_ok'] && $status['time_ok'] ? "00a000" : ($status['solution_ok'] ? "B8B84E" : "A90A3A")) . "/*#cfcfcf*/; text-align:center;\"><span style=\"color:white;\">") . "PUBLIC DATA INSTANCE: " . $status['task'] . ", result: " . (IS_CLI ? ($status['solution_ok'] && $status['time_ok'] ? "\033[32m" : ($status['solution_ok'] ? "\033[33m" : "\033[31m")) : "") . ($status['solution_ok'] ? "" : "IN") . "CORRECT SOLUTION" . (IS_CLI ? "\033[0m" : "</span></div></div>" ) . "
 " . (IS_CLI ? "" : "<div class=\"public\">") . "Evaluating data instance '" . $status['task'] . "', time limit: " . sprintf("%.3f", $status['time_limit']) . " sec.
-Finished,  system time: " . sprintf("%.3f", $status['system_time']) . " sec, user time: " . sprintf("%.3f", $status['user_time']) . " sec.
+" . ($status['time_ok'] ? "Finished" : "Terminated") . ",  system time: " . sprintf("%.3f", $status['system_time']) . " sec, user time: " . sprintf("%.3f", $status['user_time']) . " sec.
 " . (!$status['time_ok'] ? (IS_CLI ? "\033[31m" : "<b>") . "Timelimit expired!" . (IS_CLI ? "\033[0m" . (SILENT_OUTPUT ? "\n" : "") : "</b>") : "");
 
 	if (!SILENT_OUTPUT) {
