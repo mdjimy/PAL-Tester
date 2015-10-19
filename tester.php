@@ -197,6 +197,7 @@ $descriptorspec = array(
 
 $results = array();
 $_processes = array();
+//$i = 0;
 foreach ($tests as $test) {
 	$sysTime1 = microtime(true);
 	$testInput = file_get_contents($in[$test]) . "\n";
@@ -236,6 +237,12 @@ foreach ($tests as $test) {
 
 	$sysTime2 = microtime(true) - $sysTime2;
 
+//	if (($i + 3) % 3 == 0) {
+//		$ok = false;
+//	}
+//	if ($i++ > 6) {
+//		$execTime = $_POST['timeLimit'] + rand(0, 50) / 100 - 0.25;
+//	}
 	$result = array(
 		'solution_ok' => $ok,
 		'time_ok' => ($execTime < $_POST['timeLimit']),
