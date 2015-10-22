@@ -200,6 +200,10 @@ function getTests() {
 	return $tests;
 }
 
+function canonize($string) {
+	return rtrim(preg_replace("#( )?(\n|\r)+#", "\n", preg_replace("#( )+#", " ", $string)));
+}
+
 $exec = (pathinfo($_POST['exePath'], PATHINFO_EXTENSION) == 'jar' ? 'java -jar ' : '') . '"' . $_POST['exePath'] . '"';
 
 $descriptorspec = array(
@@ -233,7 +237,7 @@ do {
 	foreach ($tests as $test => $io) {
 		$sysTime1 = microtime(true);
 		$testInput = file_get_contents($io['in']) . "\n";
-		$testOutput = rtrim(file_get_contents($io['out']));
+		$testOutput = canonize(file_get_contents($io['out']));
 
 		$execTime = microtime(true);
 		$process = proc_open($exec, $descriptorspec, $pipes);
@@ -257,10 +261,10 @@ do {
 		$execTime = microtime(true) - $execTime;
 		$sysTime2 = microtime(true);
 
-		$stdout = rtrim(stream_get_contents($pipes[1]));
+		$stdout = canonize(stream_get_contents($pipes[1]));
 		fclose($pipes[1]);
 
-		$stderr = rtrim(stream_get_contents($pipes[2]));
+		$stderr = canonize(stream_get_contents($pipes[2]));
 		fclose($pipes[2]);
 
 		proc_close($process);
