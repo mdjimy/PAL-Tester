@@ -218,7 +218,7 @@ do {
 
 	$tests = getTests();
 	if (!WATCH) {
-		set_time_limit($_POST['timeLimit'] * count($tests) + 20);
+		@set_time_limit(($_POST['timeLimit'] + 5) * count($tests) + 30);
 	} else {
 		$printResultsFirsTest = true;
 
@@ -245,6 +245,10 @@ do {
 		fclose($pipes[0]);
 		$sysTime1 = microtime(true) - $sysTime1;
 
+		$stdout = "";
+		$stderr = "";
+
+		$iter = 0;
 		while (true) {
 			$status = proc_get_status($process);
 
@@ -257,14 +261,20 @@ do {
 				break;
 			}
 			usleep(250);
+
+			if (!( ++$iter % 40)) {
+				$stdout .= stream_get_contents($pipes[1]);
+				$stderr .= stream_get_contents($pipes[2]);
+				$iter = 0;
+			}
 		}
 		$execTime = microtime(true) - $execTime;
 		$sysTime2 = microtime(true);
 
-		$stdout = canonize(stream_get_contents($pipes[1]));
+		$stdout = canonize($stdout . stream_get_contents($pipes[1]));
 		fclose($pipes[1]);
 
-		$stderr = canonize(stream_get_contents($pipes[2]));
+		$stderr = canonize($stderr . stream_get_contents($pipes[2]));
 		fclose($pipes[2]);
 
 		proc_close($process);
