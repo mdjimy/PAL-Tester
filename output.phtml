@@ -38,15 +38,24 @@
 					<td style="width:20%;">
 						<label for="timeLimit">Time limit: </label>
 					</td>
+					<td style="width:25%;">
+						<input type="number" min="0" max="60" step="any" name="timeLimit" id="timeLimit" style="width:100%;" value="<?php echo isset($_POST['timeLimit']) ? sprintf("%.3f", $_POST['timeLimit']) : ''; ?>" />
+					</td>
+					<td style="width:10%;">
+						&nbsp;
+					</td>
+					<td style="width:20%;">
+						<label for="strict">Strict: </label>
+					</td>
 					<td>
-						<input type="number" min="0" max="60" step="any" name="timeLimit" id="exePath" style="width:100%;" value="<?php echo isset($_POST['timeLimit']) ? sprintf("%.3f", $_POST['timeLimit']) : ''; ?>" />
+						<input type="checkbox" name="strict" id="strict"<?php echo isset($_POST['strict']) && $_POST['strict'] ? 'checked' : ''; ?> />
 					</td>
 				</tr>
 				<tr>
 					<td style="width:20%;">
-						<label for="exePath">Working directory: </label>
+						<label>Working directory: </label>
 					</td>
-					<td>
+					<td colspan="4">
 						<?php echo getcwd(); ?>
 					</td>
 				</tr>
@@ -54,21 +63,21 @@
 					<td style="width:20%;">
 						<label for="exePath">Program path: </label>
 					</td>
-					<td>
+					<td colspan="4">
 						<input type="text" name="exePath" id="exePath" style="width:100%;" value="<?php echo isset($_POST['exePath']) ? $_POST['exePath'] : ''; ?>" />
 					</td>
 				</tr>
 				<tr>
 					<td style="width:20%;">
-						<label for="exePath">Test data path: </label>
+						<label for="dataPath">Test data path: </label>
 					</td>
-					<td>
+					<td colspan="4">
 						<input type="text" name="dataPath" id="dataPath" style="width:100%;" value="<?php echo isset($_POST['dataPath']) ? $_POST['dataPath'] : ''; ?>" />
 					</td>
 				</tr>
 				<tr>
-					<td colspan="2" align="center">
-						<input type="submit" value="Evaluate" />
+					<td colspan="5" align="center">
+						<input type="submit" name="submit" value="Evaluate" />
 					</td>
 				</tr>
 			</table>

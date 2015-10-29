@@ -1,5 +1,7 @@
 <?php
 
+ignore_user_abort(true);
+
 define('DEFAULT_TIME_LIMIT', 3); // In seconds
 define('IS_CLI', php_sapi_name() === 'cli');
 
@@ -11,10 +13,11 @@ arguments:
 	testpubDir:		Path to test direcotry. (directory with test files)
 
 switches:
-	-t, --time:		Use to set time limit. (in seconds) [default: " . sprintf("%.3f", DEFAULT_TIME_LIMIT) . "s]
-	-s, --silent:	Use if you don't want to print output of your program
-	-w, --watch:	Use if you want to keep running this script & re-run tests on update of program
-	-h, --help:		Display this sexy help :)
+	-H, --help:		Display this sexy help :)
+	-S, --strict:	Turn off canonization of EOL / EOF (require exact match of output with [test].out file)
+	-T, --time:		Use to set time limit. (in seconds) [default: " . sprintf("%.3f", DEFAULT_TIME_LIMIT) . "s]
+	-V, --verbose:	Verbose mode
+	-W, --watch:	Use if you want to keep running this script & re-run tests on update of program
 ";
 }
 
@@ -44,7 +47,7 @@ STDOUT of data instance: '" . $status['task'] . "'
 	if (!SILENT_OUTPUT || $status['stderr']) {
 		echo "
 -------------------------------------------------------------------------------
-STDERR of data instance: '" . $status['task'] . "'
+" . ($status['stderr'] && IS_CLI ? "\033[31m" : "") . "STDERR of data instance: '" . $status['task'] . "'" . ($status['stderr'] && IS_CLI ? "\033[0m" : "") . "
 -------------------------------------------------------------------------------
 " . (strlen($status['stderr']) ? $status['stderr'] : (IS_CLI ? "<" : "&lt;") . "Empty output stream" . (IS_CLI ? ">" : "&gt;")) . (IS_CLI ? "\n" : "</div>");
 	}
@@ -61,29 +64,34 @@ if (IS_CLI) {
 	$_POST['timeLimit'] = DEFAULT_TIME_LIMIT;
 	$_POST['exePath'] = NULL;
 	$_POST['dataPath'] = NULL;
-	$silent = false;
+	$silent = true;
 	$watch = false;
+	$_POST['strict'] = false;
 
 	$argp = 0;
 	for ($i = 1; $i < $argc; $i++) {
 		if (substr($argv[$i], 0, 1) == '-') {
 			switch (substr($argv[$i], 1)) {
-				case 't':
-				case '-time':
-					$_POST['timeLimit'] = $argv[++$i] / 1;
-					break;
-				case 'w':
-				case '-watch':
-					$watch = true;
-					break;
-				case 'h':
+				case 'H':
 				case '-help':
 					printCliHelp();
 					exit($argc !== 2 ? 1 : 0);
 					break;
-				case 's':
-				case '-silent':
-					$silent = true;
+				case 'S':
+				case '-strict':
+					$_POST['strict'] = true;
+					break;
+				case 'T':
+				case '-time':
+					$_POST['timeLimit'] = $argv[++$i] / 1;
+					break;
+				case 'V':
+				case '-verbose':
+					$silent = false;
+					break;
+				case 'W':
+				case '-watch':
+					$watch = true;
 					break;
 				default:
 					echo "Unknown switch " . $argv[$i] . ".\n";
@@ -132,6 +140,7 @@ if (IS_CLI) {
 	$_POST['exePath'] = isset($_POST['exePath']) ? $_POST['exePath'] : (isset($_COOKIE['exePath']) ? $_COOKIE['exePath'] : "");
 	$_POST['dataPath'] = rtrim(isset($_POST['dataPath']) ? $_POST['dataPath'] : (isset($_COOKIE['dataPath']) ? $_COOKIE['dataPath'] : ""), '\\/');
 	$_POST['timeLimit'] = (isset($_POST['timeLimit']) ? $_POST['timeLimit'] : (isset($_COOKIE['timeLimit']) ? $_COOKIE['timeLimit'] : DEFAULT_TIME_LIMIT)) / 1;
+	$_POST['strict'] = isset($_POST['submit']) ? isset($_POST['strict']) : (isset($_COOKIE['strict']) ? !!$_COOKIE['strict'] : false);
 
 	if (realpath($_POST['exePath'])) {
 		$_POST['exePath'] = getPath($_POST['exePath']);
@@ -146,6 +155,7 @@ if (IS_CLI) {
 	setcookie("exePath", $_POST['exePath'], time() + 365 * 24 * 60 * 60);
 	setcookie("dataPath", $_POST['dataPath'], time() + 365 * 24 * 60 * 60);
 	setcookie("timeLimit", $_POST['timeLimit'], time() + 365 * 24 * 60 * 60);
+	setcookie("strict", $_POST['strict'], time() + 365 * 24 * 60 * 60);
 }
 
 /**
@@ -173,7 +183,7 @@ function getTests() {
 		$in = array();
 		$out = array();
 
-		foreach (scandir('C:\Users\Martin\Documents\Skola\PAL\DU 3_2\datapub') as $file) {
+		foreach (scandir($_POST['dataPath']) as $file) {
 			if (is_file($path = $_POST['dataPath'] . '/' . $file)) {
 				if (preg_match("#^([a-zA-Z0-9]+)\.in$#i", $file, $match)) {
 					$in[$match[1]] = $path;
@@ -201,7 +211,7 @@ function getTests() {
 }
 
 function canonize($string) {
-	return rtrim(preg_replace("#( )?(\n|\r)+#", "\n", preg_replace("#( )+#", " ", $string)));
+	return rtrim(preg_replace("#( )*(\n|\r)+#", "\n", $string));
 }
 
 $exec = (pathinfo($_POST['exePath'], PATHINFO_EXTENSION) == 'jar' ? 'java -jar ' : '') . '"' . $_POST['exePath'] . '"';
@@ -237,7 +247,7 @@ do {
 	foreach ($tests as $test => $io) {
 		$sysTime1 = microtime(true);
 		$testInput = file_get_contents($io['in']) . "\n";
-		$testOutput = canonize(file_get_contents($io['out']));
+		$testOutput = $_POST['strict'] ? file_get_contents($io['out']) : canonize(file_get_contents($io['out']));
 
 		$execTime = microtime(true);
 		$process = proc_open($exec, $descriptorspec, $pipes);
@@ -271,7 +281,7 @@ do {
 		$execTime = microtime(true) - $execTime;
 		$sysTime2 = microtime(true);
 
-		$stdout = canonize($stdout . stream_get_contents($pipes[1]));
+		$stdout = $_POST['strict'] ? $stdout . stream_get_contents($pipes[1]) : canonize($stdout . stream_get_contents($pipes[1]));
 		fclose($pipes[1]);
 
 		$stderr = canonize($stderr . stream_get_contents($pipes[2]));
