@@ -9,9 +9,11 @@ Program se spouší příkazem:
 
 `# php tester.php programPath testpubDir`
 
-Dále je možné pomocí přepínače `--time` nastavit time-limit úloh (defaultně 3 sekundy  / úloha), nebo pomocí přepínače `--silent` omezit tisk výstupu vašeho programu do terminálu (bude tištěn pouze `stderr` pokud nebude prázdný).
+Dále je možné pomocí přepínače `--time` nastavit time-limit úloh (defaultně 3 sekundy  / úloha), nebo pomocí přepínače `--verbose` zapnout tisk výstupu vašeho programu do terminálu. V ne-verbose módu bude tištěn pouze `stderr` pokud nebude prázdný.
 
-Nově jsem pak implementoval switch `--watch`, který skript po dokončení testů neukončí, ale bude sledovat mtime (času poslední modifikace exe / jar souboru) a při jeho změně (re-kompilaci programu) spustí všechny testy znovu.
+Nově jsem pak implementoval switch `--watch`, který skript po dokončení testů neukončí, ale bude sledovat mtime (času poslední modifikace exe / jar souboru) a při jeho změně (re-kompilaci programu) spustí všechny testy znovu. 
+
+Rovněž je k dispozici nově přepínač `--strict`, který vypne kanonizaci výstupu vašeho programu, která defaultně nahrazuje konce řádku, které odpovídají výrazu "( )*[\n\r]+" za znak EOL a na konci výstupu případně odstraní prázdné řádky.
 
 ![Terminal sample](terminal.png)
 
